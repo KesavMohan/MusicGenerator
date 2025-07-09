@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .settings-group {
+            flex: 1;
+        }
+
+        .duration-group, .track-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="number"], select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="number"] {
+            width: 100px;
+        }
+
+        select {
+            width: 120px;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin-top: 20px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .tracks-container {
+            margin-top: 20px;
+        }
+
+        .track-item {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .track-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .track-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .audio-player {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .example-prompt {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .example-prompt:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .model-status {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .model-status.ready {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .model-status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .model-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 AI Music Generator</h1>
+        
+        <div id="modelStatus" class="model-status loading">
+            <div class="loading-spinner"></div>
+            Checking model status...
+        </div>
+
+        <form id="musicForm">
+            <div class="form-group">
+                <label for="prompt">Describe the music you want to generate:</label>
+                <textarea id="prompt" name="prompt" placeholder="Enter your music description here... (e.g., 'A upbeat electronic dance track with synthesizers and drums')"></textarea>
+            </div>
+
+            <div class="form-group">
+                <div class="settings-row">
+                    <div class="settings-group">
+                        <label for="duration">Duration (seconds):</label>
+                        <div class="duration-group">
+                            <input type="number" id="duration" name="duration" value="10" min="5" max="30">
+                            <span>seconds</span>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <label for="trackCount">Number of tracks:</label>
+                        <div class="track-group">
+                            <select id="trackCount" name="trackCount">
+                                <option value="1">1 track</option>
+                                <option value="2">2 tracks</option>
+                                <option value="3">3 tracks</option>
+                                <option value="4">4 tracks</option>
+                                <option value="5">5 tracks</option>
+                                <option value="6">6 tracks</option>
+                                <option value="7">7 tracks</option>
+                                <option value="8">8 tracks</option>
+                                <option value="9">9 tracks</option>
+                                <option value="10">10 tracks</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="generate-btn" id="generateBtn">
+                Generate Music
+            </button>
+        </form>
+
+        <div id="status" class="status"></div>
+
+        <div id="resultSection" class="result-section">
+            <h3>Generated Music:</h3>
+            <div id="tracksContainer" class="tracks-container">
+                <!-- Tracks will be added here dynamically -->
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>Example Prompts:</h3>
+            <div class="example-prompt" onclick="fillPrompt('A upbeat electronic dance track with synthesizers and heavy bass')">
+                🎹 A upbeat electronic dance track with synthesizers and heavy bass
+            </div>
+            <div class="example-prompt" onclick="fillPrompt('Ambient electronic music with soft pads and gentle melodies')">
+                🌙 Ambient electronic music with soft pads and gentle melodies
+            </div>
+            <div class="example-prompt" onclick="fillPrompt('Energetic dubstep with strong drops and electronic effects')">
+                🔥 Energetic dubstep with strong drops and electronic effects
+            </div>
+            <div class="example-prompt" onclick="fillPrompt('Chill lo-fi electronic beats with vinyl crackle')">
+                📻 Chill lo-fi electronic beats with vinyl crackle
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check model status on page load
+        window.addEventListener('load', function() {
+            checkModelStatus();
+        });
+
+        function checkModelStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('modelStatus');
+                    if (data.model_loaded) {
+                        const specs = data.audio_specs || {};
+                        const specsText = specs.format ? 
+                            `(${specs.format}, ${specs.sample_rate}, ${specs.channels}, ${specs.bit_depth})` : 
+                            `(${data.model_type})`;
+                        statusDiv.innerHTML = `✅ Model loaded successfully! ${specsText} Ready to generate music.`;
+                        statusDiv.className = 'model-status ready';
+                        document.getElementById('generateBtn').disabled = false;
+                    } else {
+                        statusDiv.innerHTML = '❌ Model not loaded. Please check the console for errors.';
+                        statusDiv.className = 'model-status error';
+                        document.getElementById('generateBtn').disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking model status:', error);
+                    const statusDiv = document.getElementById('modelStatus');
+                    statusDiv.innerHTML = '❌ Error checking model status.';
+                    statusDiv.className = 'model-status error';
+                });
+        }
+
+        function fillPrompt(text) {
+            document.getElementById('prompt').value = text;
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function createTrackElement(trackData, index) {
+            const trackDiv = document.createElement('div');
+            trackDiv.className = 'track-item';
+            trackDiv.innerHTML = `
+                <div class="track-header">
+                    <div class="track-title">Track ${trackData.track_number}</div>
+                </div>
+                <audio class="audio-player" controls src="${trackData.download_url}"></audio>
+                <a class="download-btn" href="${trackData.download_url}" download="${trackData.filename}">
+                    Download Track ${trackData.track_number}
+                </a>
+            `;
+            return trackDiv;
+        }
+
+        document.getElementById('musicForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const prompt = document.getElementById('prompt').value;
+            const duration = document.getElementById('duration').value;
+            const trackCount = document.getElementById('trackCount').value;
+            
+            if (!prompt.trim()) {
+                showStatus('Please enter a music description.', 'error');
+                return;
+            }
+
+            // Show loading state
+            const generateBtn = document.getElementById('generateBtn');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<div class="loading-spinner"></div>Generating...';
+            
+            showStatus(`Generating ${trackCount} track(s)... This may take a few minutes.`, 'loading');
+            
+            // Hide previous results
+            document.getElementById('resultSection').style.display = 'none';
+
+            // Make API call
+            fetch('/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    duration: parseInt(duration),
+                    track_count: parseInt(trackCount)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = 'Generate Music';
+                
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    
+                    // Clear previous tracks
+                    const tracksContainer = document.getElementById('tracksContainer');
+                    tracksContainer.innerHTML = '';
+                    
+                    // Add all generated tracks
+                    data.files.forEach(trackData => {
+                        const trackElement = createTrackElement(trackData, trackData.track_number - 1);
+                        tracksContainer.appendChild(trackElement);
+                    });
+                    
+                    // Show result section
+                    document.getElementById('resultSection').style.display = 'block';
+                } else {
+                    showStatus(data.error || 'Generation failed. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = 'Generate Music';
+                showStatus('Network error. Please check your connection and try again.', 'error');
+            });
+        });
+    </script>
+</body>
+</html> 
