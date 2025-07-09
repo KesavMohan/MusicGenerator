@@ -1,6 +1,6 @@
 import os
 import uuid
-from flask import Flask, render_template, request, jsonify, send_file, url_for
+from flask import Flask, render_template, request, jsonify, send_file, url_for, Response
 import torch
 import torchaudio
 import numpy as np
@@ -9,6 +9,8 @@ import logging
 import time
 import tempfile
 from werkzeug.utils import secure_filename
+import threading
+import queue
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,9 +39,33 @@ ALLOWED_EXTENSIONS = {'wav', 'mp3', 'flac', 'ogg', 'm4a'}
 # Global variable to store the model
 music_generator = None
 
+# Progress tracking
+generation_progress = {}
+progress_lock = threading.Lock()
+
 def allowed_file(filename):
     """Check if uploaded file has allowed extension"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def update_progress(generation_id, progress, status="Generating"):
+    """Update progress for a specific generation"""
+    with progress_lock:
+        generation_progress[generation_id] = {
+            'progress': progress,
+            'status': status,
+            'timestamp': time.time()
+        }
+
+def get_progress(generation_id):
+    """Get progress for a specific generation"""
+    with progress_lock:
+        return generation_progress.get(generation_id, {'progress': 0, 'status': 'Not found'})
+
+def cleanup_progress(generation_id):
+    """Clean up progress data after generation completes"""
+    with progress_lock:
+        if generation_id in generation_progress:
+            del generation_progress[generation_id]
 
 def load_model():
     """Load a music generation model"""
@@ -131,8 +157,8 @@ def process_reference_audio(file_path):
         logger.error(f"Error processing reference audio: {str(e)}")
         return None, None
 
-def generate_demo_audio(prompt, duration=10, reference_analysis=None):
-    """Generate demo audio with synthesized sounds"""
+def generate_demo_audio(prompt, duration=10, reference_analysis=None, generation_id=None):
+    """Generate demo audio with synthesized sounds and progress tracking"""
     try:
         # Generate a simple synthesized audio based on prompt keywords
         t = np.linspace(0, duration, int(TARGET_SAMPLE_RATE * duration))
@@ -154,6 +180,19 @@ def generate_demo_audio(prompt, duration=10, reference_analysis=None):
             base_freq = 330
             amplitude = 0.25
             beat_freq = 2
+        
+        # Simulate progress updates for demo generation
+        if generation_id:
+            update_progress(generation_id, 10, "Initializing audio generation...")
+            time.sleep(0.5)
+            update_progress(generation_id, 25, "Analyzing prompt characteristics...")
+            time.sleep(0.5)
+            update_progress(generation_id, 40, "Generating base frequencies...")
+            time.sleep(0.5)
+            update_progress(generation_id, 60, "Applying audio effects...")
+            time.sleep(0.5)
+            update_progress(generation_id, 80, "Finalizing audio mix...")
+            time.sleep(0.5)
         
         # Create different tones based on prompt content
         if any(word in prompt.lower() for word in ['upbeat', 'dance', 'energetic', 'fast']):
@@ -202,10 +241,16 @@ def generate_demo_audio(prompt, duration=10, reference_analysis=None):
         # Convert to tensor and ensure proper shape (channels, samples)
         audio_tensor = torch.from_numpy(audio_stereo).float()
         
+        if generation_id:
+            update_progress(generation_id, 100, "Generation complete!")
+            time.sleep(0.5)
+        
         return audio_tensor, TARGET_SAMPLE_RATE
         
     except Exception as e:
         logger.error(f"Error generating demo audio: {str(e)}")
+        if generation_id:
+            update_progress(generation_id, 0, f"Error: {str(e)}")
         return None, None
 
 def process_audio_to_specs(audio_tensor, original_sample_rate):
@@ -304,6 +349,10 @@ def generate_music():
         if duration < 5 or duration > 180:
             return jsonify({'error': 'Duration must be between 5 and 180 seconds (3 minutes)'}), 400
         
+        # Generate unique ID for this generation
+        generation_id = str(uuid.uuid4())
+        update_progress(generation_id, 0, "Starting generation...")
+        
         logger.info(f"Generating {track_count} track(s) for prompt: {prompt}, duration: {duration}s")
         if reference_analysis:
             logger.info(f"Using reference audio analysis: {reference_analysis}")
@@ -312,97 +361,123 @@ def generate_music():
         
         # Generate multiple tracks
         for track_num in range(track_count):
-            # Generate unique filename for each track
-            filename = f"generated_{uuid.uuid4().hex}.wav"
-            filepath = os.path.join(GENERATED_MUSIC_DIR, filename)
-            
-            # Generate music
-            if music_generator:
-                try:
-                    if music_generator["type"] == "musicgen":
-                        # Use MusicGen model
-                        processor = music_generator["processor"]
-                        model = music_generator["model"]
+            try:
+                # Update progress for each track
+                track_progress = (track_num / track_count) * 100
+                update_progress(generation_id, track_progress, f"Generating track {track_num + 1}/{track_count}...")
+                
+                # Generate unique filename for each track
+                filename = f"generated_{uuid.uuid4().hex}.wav"
+                filepath = os.path.join(GENERATED_MUSIC_DIR, filename)
+                
+                # Generate music
+                if music_generator:
+                    try:
+                        if music_generator["type"] == "musicgen":
+                            # Use MusicGen model
+                            processor = music_generator["processor"]
+                            model = music_generator["model"]
+                            
+                            update_progress(generation_id, track_progress + 10, f"Processing prompt for track {track_num + 1}...")
+                            
+                            # Enhance prompt with reference analysis if available
+                            enhanced_prompt = prompt
+                            if reference_analysis:
+                                ref_duration = reference_analysis.get('duration', 0)
+                                ref_tempo = reference_analysis.get('tempo_estimate', 120)
+                                enhanced_prompt = f"{prompt} (inspired by reference: {ref_duration:.1f}s duration, {ref_tempo:.0f} BPM)"
+                            
+                            # Process the prompt
+                            inputs = processor(
+                                text=[enhanced_prompt],
+                                padding=True,
+                                return_tensors="pt",
+                            )
+                            
+                            update_progress(generation_id, track_progress + 30, f"Generating audio for track {track_num + 1}...")
+                            
+                            # Calculate tokens based on duration (roughly 50 tokens per second)
+                            max_new_tokens = int(duration * 50)
+                            
+                            # Generate audio
+                            with torch.no_grad():
+                                audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens)
+                            
+                            update_progress(generation_id, track_progress + 70, f"Processing audio for track {track_num + 1}...")
+                            
+                            # Get sample rate from model
+                            original_sample_rate = model.config.audio_encoder.sampling_rate
+                            
+                            # Convert to the right format
+                            audio_tensor = audio_values[0].cpu()
+                            
+                            # Process audio to meet specifications
+                            audio_tensor = process_audio_to_specs(audio_tensor, original_sample_rate)
+                            
+                            if audio_tensor is None:
+                                update_progress(generation_id, 0, f"Failed to process audio for track {track_num + 1}")
+                                return jsonify({'error': f'Failed to process audio for track {track_num + 1}'}), 500
+                            
+                        elif music_generator["type"] == "demo":
+                            # Use demo generation with reference analysis
+                            audio_tensor, original_sample_rate = generate_demo_audio(prompt, duration, reference_analysis, generation_id)
+                            
+                            if audio_tensor is None:
+                                update_progress(generation_id, 0, "Failed to generate demo audio")
+                                return jsonify({'error': 'Failed to generate demo audio'}), 500
+                            
+                            # Process audio to meet specifications
+                            audio_tensor = process_audio_to_specs(audio_tensor, original_sample_rate)
+                            
+                            if audio_tensor is None:
+                                update_progress(generation_id, 0, f"Failed to process demo audio for track {track_num + 1}")
+                                return jsonify({'error': f'Failed to process demo audio for track {track_num + 1}'}), 500
                         
-                        # Enhance prompt with reference analysis if available
-                        enhanced_prompt = prompt
-                        if reference_analysis:
-                            ref_duration = reference_analysis.get('duration', 0)
-                            ref_tempo = reference_analysis.get('tempo_estimate', 120)
-                            enhanced_prompt = f"{prompt} (inspired by reference: {ref_duration:.1f}s duration, {ref_tempo:.0f} BPM)"
+                        update_progress(generation_id, track_progress + 90, f"Saving track {track_num + 1}...")
                         
-                        # Process the prompt
-                        inputs = processor(
-                            text=[enhanced_prompt],
-                            padding=True,
-                            return_tensors="pt",
+                        # Ensure the audio is the right length
+                        expected_length = int(TARGET_SAMPLE_RATE * duration)
+                        if audio_tensor.shape[-1] < expected_length:
+                            # Pad with silence if too short
+                            padding_length = expected_length - audio_tensor.shape[-1]
+                            padding = torch.zeros(audio_tensor.shape[0], padding_length)
+                            audio_tensor = torch.cat([audio_tensor, padding], dim=-1)
+                        elif audio_tensor.shape[-1] > expected_length:
+                            # Trim if too long
+                            audio_tensor = audio_tensor[:, :expected_length]
+                        
+                        # Save audio file with specific encoding
+                        torchaudio.save(
+                            filepath, 
+                            audio_tensor, 
+                            TARGET_SAMPLE_RATE,
+                            encoding="PCM_S",
+                            bits_per_sample=TARGET_BIT_DEPTH
                         )
                         
-                        # Calculate tokens based on duration (roughly 50 tokens per second)
-                        max_new_tokens = int(duration * 50)
+                        generated_files.append({
+                            'filename': filename,
+                            'download_url': url_for('download_file', filename=filename),
+                            'track_number': track_num + 1
+                        })
                         
-                        # Generate audio
-                        with torch.no_grad():
-                            audio_values = model.generate(**inputs, max_new_tokens=max_new_tokens)
+                        logger.info(f"Track {track_num + 1} generated successfully: {filename}")
                         
-                        # Get sample rate from model
-                        original_sample_rate = model.config.audio_encoder.sampling_rate
-                        
-                        # Convert to the right format
-                        audio_tensor = audio_values[0].cpu()
-                        
-                        # Process audio to meet specifications
-                        audio_tensor = process_audio_to_specs(audio_tensor, original_sample_rate)
-                        
-                        if audio_tensor is None:
-                            return jsonify({'error': f'Failed to process audio for track {track_num + 1}'}), 500
-                        
-                    elif music_generator["type"] == "demo":
-                        # Use demo generation with reference analysis
-                        audio_tensor, original_sample_rate = generate_demo_audio(prompt, duration, reference_analysis)
-                        
-                        if audio_tensor is None:
-                            return jsonify({'error': 'Failed to generate demo audio'}), 500
-                        
-                        # Process audio to meet specifications
-                        audio_tensor = process_audio_to_specs(audio_tensor, original_sample_rate)
-                        
-                        if audio_tensor is None:
-                            return jsonify({'error': f'Failed to process demo audio for track {track_num + 1}'}), 500
-                    
-                    # Ensure the audio is the right length
-                    expected_length = int(TARGET_SAMPLE_RATE * duration)
-                    if audio_tensor.shape[-1] < expected_length:
-                        # Pad with silence if too short
-                        padding_length = expected_length - audio_tensor.shape[-1]
-                        padding = torch.zeros(audio_tensor.shape[0], padding_length)
-                        audio_tensor = torch.cat([audio_tensor, padding], dim=-1)
-                    elif audio_tensor.shape[-1] > expected_length:
-                        # Trim if too long
-                        audio_tensor = audio_tensor[:, :expected_length]
-                    
-                    # Save audio file with specific encoding
-                    torchaudio.save(
-                        filepath, 
-                        audio_tensor, 
-                        TARGET_SAMPLE_RATE,
-                        encoding="PCM_S",
-                        bits_per_sample=TARGET_BIT_DEPTH
-                    )
-                    
-                    generated_files.append({
-                        'filename': filename,
-                        'download_url': url_for('download_file', filename=filename),
-                        'track_number': track_num + 1
-                    })
-                    
-                    logger.info(f"Track {track_num + 1} generated successfully: {filename}")
-                    
-                except Exception as e:
-                    logger.error(f"Error during music generation for track {track_num + 1}: {str(e)}")
-                    return jsonify({'error': f'Generation failed for track {track_num + 1}: {str(e)}'}), 500
-            else:
-                return jsonify({'error': 'Model not loaded. Please restart the application.'}), 500
+                    except Exception as e:
+                        logger.error(f"Error during music generation for track {track_num + 1}: {str(e)}")
+                        update_progress(generation_id, 0, f"Error generating track {track_num + 1}: {str(e)}")
+                        return jsonify({'error': f'Generation failed for track {track_num + 1}: {str(e)}'}), 500
+                else:
+                    update_progress(generation_id, 0, "Model not loaded")
+                    return jsonify({'error': 'Model not loaded. Please restart the application.'}), 500
+                
+            except Exception as e:
+                logger.error(f"Error in track generation loop: {str(e)}")
+                update_progress(generation_id, 0, f"Error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        # Final progress update
+        update_progress(generation_id, 100, "Generation complete!")
         
         # Return success with all generated files
         message = f'Generated {track_count} track(s) successfully!' + (' (Demo Mode)' if music_generator["type"] == "demo" else '')
@@ -413,12 +488,19 @@ def generate_music():
             'success': True,
             'files': generated_files,
             'message': message,
-            'track_count': track_count
+            'track_count': track_count,
+            'generation_id': generation_id
         })
             
     except Exception as e:
         logger.error(f"Error in generate_music: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/progress/<generation_id>')
+def get_progress(generation_id):
+    """Get progress for a specific generation"""
+    progress_data = get_progress(generation_id)
+    return jsonify(progress_data)
 
 @app.route('/download/<filename>')
 def download_file(filename):
