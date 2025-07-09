@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Music Generator</title>
+    <title>Music Generator - AI Electronic Music Creation</title>
     <style>
         * {
             margin: 0;
@@ -15,180 +15,189 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            color: #333;
         }
 
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-card {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             padding: 40px;
-            max-width: 700px;
-            width: 100%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .form-group {
             margin-bottom: 25px;
         }
 
-        label {
+        .form-group label {
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
-            font-size: 1.1em;
+            color: #555;
         }
 
-        textarea {
+        .form-control {
             width: 100%;
             padding: 15px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e1e5e9;
             border-radius: 10px;
             font-size: 16px;
-            resize: vertical;
-            min-height: 120px;
-            transition: border-color 0.3s ease;
+            transition: all 0.3s ease;
+            background: white;
         }
 
-        textarea:focus {
+        .form-control:focus {
             outline: none;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
-        .settings-row {
-            display: flex;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            align-items: center;
+            margin-bottom: 25px;
         }
 
-        .settings-group {
-            flex: 1;
-        }
-
-        .duration-group, .track-group {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        input[type="number"], select {
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s ease;
-        }
-
-        input[type="number"]:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        input[type="number"] {
-            width: 100px;
-        }
-
-        select {
-            width: 120px;
-        }
-
-        .generate-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
+            padding: 15px 30px;
             border-radius: 10px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s ease;
-            margin-top: 20px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .generate-btn:hover {
+        .btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .generate-btn:disabled {
+        .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
         }
 
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 10px 20px rgba(108, 117, 125, 0.3);
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-area {
             text-align: center;
-            font-weight: 500;
-            display: none;
+            padding: 30px;
+            cursor: pointer;
         }
 
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .status.loading {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .result-section {
-            margin-top: 30px;
-            display: none;
-        }
-
-        .tracks-container {
-            margin-top: 20px;
-        }
-
-        .track-item {
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 10px;
-            padding: 20px;
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
             margin-bottom: 15px;
-            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .reference-info {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .status-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .status-item h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .status-item p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            margin-top: 30px;
+        }
+
+        .track-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
         }
 
         .track-header {
@@ -199,297 +208,388 @@
         }
 
         .track-title {
+            font-size: 1.2rem;
             font-weight: 600;
             color: #333;
-            font-size: 1.1em;
+        }
+
+        .track-controls {
+            display: flex;
+            gap: 10px;
         }
 
         .audio-player {
             width: 100%;
-            margin-top: 15px;
-        }
-
-        .download-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-weight: 500;
-            transition: background 0.3s ease;
-        }
-
-        .download-btn:hover {
-            background: #218838;
-        }
-
-        .examples {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 10px;
-        }
-
-        .examples h3 {
-            color: #333;
             margin-bottom: 15px;
         }
 
-        .example-prompt {
-            background: rgba(255, 255, 255, 0.8);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .example-prompt:hover {
-            background: rgba(255, 255, 255, 1);
-        }
-
-        .model-status {
+        .loading {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 500;
+            padding: 40px;
+            color: #667eea;
         }
 
-        .model-status.ready {
-            background: #d4edda;
-            color: #155724;
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
         }
 
-        .model-status.loading {
-            background: #fff3cd;
-            color: #856404;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        .model-status.error {
+        .error {
             background: #f8d7da;
             color: #721c24;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background-color: #f0f0f0;
+            padding: 15px;
             border-radius: 10px;
-            overflow: hidden;
-            margin-top: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s ease;
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+
+        .example-prompts {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .example-prompts h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .prompt-examples {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+
+        .prompt-example {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #e1e5e9;
+        }
+
+        .prompt-example:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎵 AI Music Generator</h1>
-        
-        <div id="modelStatus" class="model-status loading">
-            <div class="loading-spinner"></div>
-            Checking model status...
+        <div class="header">
+            <h1>🎵 Music Generator</h1>
+            <p>Create Electronic Music with AI - Up to 3 Minutes Long!</p>
         </div>
 
-        <form id="musicForm">
-            <div class="form-group">
-                <label for="prompt">Describe the music you want to generate:</label>
-                <textarea id="prompt" name="prompt" placeholder="Enter your music description here... (e.g., 'A upbeat electronic dance track with synthesizers and drums')"></textarea>
-            </div>
+        <div class="main-card">
+            <form id="musicForm">
+                <div class="form-group">
+                    <label for="prompt">Describe your music:</label>
+                    <textarea id="prompt" class="form-control" rows="3" placeholder="e.g., Upbeat electronic dance music with heavy bass and synth melodies" required></textarea>
+                </div>
 
-            <div class="form-group">
-                <div class="settings-row">
-                    <div class="settings-group">
+                <div class="form-row">
+                    <div class="form-group">
                         <label for="duration">Duration (seconds):</label>
-                        <div class="duration-group">
-                            <input type="number" id="duration" name="duration" value="10" min="5" max="30">
-                            <span>seconds</span>
-                        </div>
+                        <input type="number" id="duration" class="form-control" min="5" max="180" value="30" required>
+                        <small style="color: #666;">5 seconds to 3 minutes (180 seconds)</small>
                     </div>
-                    
-                    <div class="settings-group">
+                    <div class="form-group">
                         <label for="trackCount">Number of tracks:</label>
-                        <div class="track-group">
-                            <select id="trackCount" name="trackCount">
-                                <option value="1">1 track</option>
-                                <option value="2">2 tracks</option>
-                                <option value="3">3 tracks</option>
-                                <option value="4">4 tracks</option>
-                                <option value="5">5 tracks</option>
-                                <option value="6">6 tracks</option>
-                                <option value="7">7 tracks</option>
-                                <option value="8">8 tracks</option>
-                                <option value="9">9 tracks</option>
-                                <option value="10">10 tracks</option>
-                            </select>
-                        </div>
+                        <select id="trackCount" class="form-control">
+                            <option value="1">1 track</option>
+                            <option value="2">2 tracks</option>
+                            <option value="3">3 tracks</option>
+                            <option value="5">5 tracks</option>
+                            <option value="10">10 tracks</option>
+                        </select>
                     </div>
                 </div>
-            </div>
 
-            <button type="submit" class="generate-btn" id="generateBtn">
-                Generate Music
-            </button>
-        </form>
+                <div class="upload-section">
+                    <h3 style="margin-bottom: 20px; color: #667eea;">🎧 Upload Reference Audio (Optional)</h3>
+                    <p style="margin-bottom: 20px; color: #666;">Upload a song to inspire the AI's music generation. The model will analyze the audio characteristics and use them as inspiration.</p>
+                    
+                    <div class="upload-area" onclick="document.getElementById('referenceFile').click()">
+                        <div class="upload-icon">📁</div>
+                        <p><strong>Click to upload audio file</strong></p>
+                        <p style="color: #666; font-size: 0.9rem;">Supported: WAV, MP3, FLAC, OGG, M4A (max 50MB)</p>
+                    </div>
+                    
+                    <input type="file" id="referenceFile" class="file-input" accept=".wav,.mp3,.flac,.ogg,.m4a">
+                    
+                    <div id="referenceInfo" class="reference-info">
+                        <h4>📊 Reference Audio Analysis</h4>
+                        <div id="referenceDetails"></div>
+                    </div>
+                </div>
 
-        <div id="status" class="status"></div>
+                <div style="text-align: center;">
+                    <button type="submit" id="generateBtn" class="btn">
+                        🎵 Generate Music
+                    </button>
+                </div>
+            </form>
+        </div>
 
-        <div id="resultSection" class="result-section">
-            <h3>Generated Music:</h3>
-            <div id="tracksContainer" class="tracks-container">
-                <!-- Tracks will be added here dynamically -->
+        <div class="status-section">
+            <h3 style="margin-bottom: 20px; color: #667eea;">🔧 System Status</h3>
+            <div class="status-grid" id="statusGrid">
+                <div class="status-item">
+                    <h4>Model Status</h4>
+                    <p id="modelStatus">Loading...</p>
+                </div>
+                <div class="status-item">
+                    <h4>Audio Format</h4>
+                    <p id="audioFormat">WAV 16-bit</p>
+                </div>
+                <div class="status-item">
+                    <h4>Sample Rate</h4>
+                    <p id="sampleRate">44.1 kHz</p>
+                </div>
+                <div class="status-item">
+                    <h4>Channels</h4>
+                    <p id="channels">Stereo</p>
+                </div>
+                <div class="status-item">
+                    <h4>Max Duration</h4>
+                    <p id="maxDuration">3 minutes</p>
+                </div>
             </div>
         </div>
 
-        <div class="examples">
-            <h3>Example Prompts:</h3>
-            <div class="example-prompt" onclick="fillPrompt('A upbeat electronic dance track with synthesizers and heavy bass')">
-                🎹 A upbeat electronic dance track with synthesizers and heavy bass
-            </div>
-            <div class="example-prompt" onclick="fillPrompt('Ambient electronic music with soft pads and gentle melodies')">
-                🌙 Ambient electronic music with soft pads and gentle melodies
-            </div>
-            <div class="example-prompt" onclick="fillPrompt('Energetic dubstep with strong drops and electronic effects')">
-                🔥 Energetic dubstep with strong drops and electronic effects
-            </div>
-            <div class="example-prompt" onclick="fillPrompt('Chill lo-fi electronic beats with vinyl crackle')">
-                📻 Chill lo-fi electronic beats with vinyl crackle
+        <div id="resultsSection" class="results-section" style="display: none;">
+            <h3 style="margin-bottom: 20px; color: #667eea;">🎵 Generated Tracks</h3>
+            <div id="tracksContainer"></div>
+        </div>
+
+        <div class="example-prompts">
+            <h3>💡 Example Prompts</h3>
+            <div class="prompt-examples">
+                <div class="prompt-example" onclick="setPrompt('Upbeat electronic dance music with heavy bass and synth melodies')">
+                    Upbeat electronic dance music with heavy bass and synth melodies
+                </div>
+                <div class="prompt-example" onclick="setPrompt('Ambient electronic music with gentle pads and atmospheric sounds')">
+                    Ambient electronic music with gentle pads and atmospheric sounds
+                </div>
+                <div class="prompt-example" onclick="setPrompt('Fast-paced techno with driving beats and industrial sounds')">
+                    Fast-paced techno with driving beats and industrial sounds
+                </div>
+                <div class="prompt-example" onclick="setPrompt('Chill downtempo electronic with smooth rhythms and warm tones')">
+                    Chill downtempo electronic with smooth rhythms and warm tones
+                </div>
+                <div class="prompt-example" onclick="setPrompt('Dubstep with heavy bass drops and electronic effects')">
+                    Dubstep with heavy bass drops and electronic effects
+                </div>
+                <div class="prompt-example" onclick="setPrompt('Synthwave with retro 80s style and melodic leads')">
+                    Synthwave with retro 80s style and melodic leads
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Check model status on page load
-        window.addEventListener('load', function() {
-            checkModelStatus();
+        let referenceAnalysis = null;
+
+        // Check system status on page load
+        window.addEventListener('load', async () => {
+            await checkStatus();
         });
 
-        function checkModelStatus() {
-            fetch('/status')
-                .then(response => response.json())
-                .then(data => {
-                    const statusDiv = document.getElementById('modelStatus');
-                    if (data.model_loaded) {
-                        const specs = data.audio_specs || {};
-                        const specsText = specs.format ? 
-                            `(${specs.format}, ${specs.sample_rate}, ${specs.channels}, ${specs.bit_depth})` : 
-                            `(${data.model_type})`;
-                        statusDiv.innerHTML = `✅ Model loaded successfully! ${specsText} Ready to generate music.`;
-                        statusDiv.className = 'model-status ready';
-                        document.getElementById('generateBtn').disabled = false;
-                    } else {
-                        statusDiv.innerHTML = '❌ Model not loaded. Please check the console for errors.';
-                        statusDiv.className = 'model-status error';
-                        document.getElementById('generateBtn').disabled = true;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking model status:', error);
-                    const statusDiv = document.getElementById('modelStatus');
-                    statusDiv.innerHTML = '❌ Error checking model status.';
-                    statusDiv.className = 'model-status error';
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                
+                document.getElementById('modelStatus').textContent = data.model_loaded ? 'Ready' : 'Not Loaded';
+                document.getElementById('audioFormat').textContent = data.audio_specs.format + ' ' + data.audio_specs.bit_depth;
+                document.getElementById('sampleRate').textContent = data.audio_specs.sample_rate;
+                document.getElementById('channels').textContent = data.audio_specs.channels;
+                document.getElementById('maxDuration').textContent = Math.floor(data.max_duration / 60) + ' minutes';
+                
+                if (!data.model_loaded) {
+                    showError('Model not loaded. Please restart the application.');
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+                showError('Unable to check system status.');
+            }
+        }
+
+        function setPrompt(prompt) {
+            document.getElementById('prompt').value = prompt;
+        }
+
+        // Handle file upload
+        document.getElementById('referenceFile').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
                 });
-        }
 
-        function fillPrompt(text) {
-            document.getElementById('prompt').value = text;
-        }
+                const data = await response.json();
 
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-            statusDiv.style.display = 'block';
-        }
+                if (data.success) {
+                    referenceAnalysis = data.analysis;
+                    document.getElementById('referenceDetails').innerHTML = `
+                        <p><strong>Duration:</strong> ${data.analysis.duration.toFixed(1)} seconds</p>
+                        <p><strong>Loudness (RMS):</strong> ${data.analysis.rms.toFixed(3)}</p>
+                        <p><strong>Brightness:</strong> ${data.analysis.spectral_centroid.toFixed(3)}</p>
+                        <p><strong>Estimated Tempo:</strong> ${data.analysis.tempo_estimate.toFixed(0)} BPM</p>
+                    `;
+                    document.getElementById('referenceInfo').style.display = 'block';
+                    showSuccess(data.message);
+                } else {
+                    showError(data.error);
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                showError('Failed to upload file. Please try again.');
+            }
+        });
 
-        function createTrackElement(trackData, index) {
-            const trackDiv = document.createElement('div');
-            trackDiv.className = 'track-item';
-            trackDiv.innerHTML = `
-                <div class="track-header">
-                    <div class="track-title">Track ${trackData.track_number}</div>
-                </div>
-                <audio class="audio-player" controls src="${trackData.download_url}"></audio>
-                <a class="download-btn" href="${trackData.download_url}" download="${trackData.filename}">
-                    Download Track ${trackData.track_number}
-                </a>
-            `;
-            return trackDiv;
-        }
-
-        document.getElementById('musicForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Handle form submission
+        document.getElementById('musicForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
             
             const prompt = document.getElementById('prompt').value;
-            const duration = document.getElementById('duration').value;
-            const trackCount = document.getElementById('trackCount').value;
+            const duration = parseInt(document.getElementById('duration').value);
+            const trackCount = parseInt(document.getElementById('trackCount').value);
             
             if (!prompt.trim()) {
-                showStatus('Please enter a music description.', 'error');
+                showError('Please enter a description for your music.');
                 return;
             }
 
             // Show loading state
             const generateBtn = document.getElementById('generateBtn');
+            const originalText = generateBtn.innerHTML;
+            generateBtn.innerHTML = '<div class="spinner"></div> Generating...';
             generateBtn.disabled = true;
-            generateBtn.innerHTML = '<div class="loading-spinner"></div>Generating...';
-            
-            showStatus(`Generating ${trackCount} track(s)... This may take a few minutes.`, 'loading');
-            
-            // Hide previous results
-            document.getElementById('resultSection').style.display = 'none';
 
-            // Make API call
-            fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt: prompt,
-                    duration: parseInt(duration),
-                    track_count: parseInt(trackCount)
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = 'Generate Music';
-                
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        duration: duration,
+                        track_count: trackCount,
+                        reference_analysis: referenceAnalysis
+                    })
+                });
+
+                const data = await response.json();
+
                 if (data.success) {
-                    showStatus(data.message, 'success');
-                    
-                    // Clear previous tracks
-                    const tracksContainer = document.getElementById('tracksContainer');
-                    tracksContainer.innerHTML = '';
-                    
-                    // Add all generated tracks
-                    data.files.forEach(trackData => {
-                        const trackElement = createTrackElement(trackData, trackData.track_number - 1);
-                        tracksContainer.appendChild(trackElement);
-                    });
-                    
-                    // Show result section
-                    document.getElementById('resultSection').style.display = 'block';
+                    showSuccess(data.message);
+                    displayTracks(data.files);
                 } else {
-                    showStatus(data.error || 'Generation failed. Please try again.', 'error');
+                    showError(data.error);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            } catch (error) {
+                console.error('Error generating music:', error);
+                showError('Failed to generate music. Please try again.');
+            } finally {
+                // Reset button state
+                generateBtn.innerHTML = originalText;
                 generateBtn.disabled = false;
-                generateBtn.innerHTML = 'Generate Music';
-                showStatus('Network error. Please check your connection and try again.', 'error');
-            });
+            }
         });
+
+        function displayTracks(files) {
+            const container = document.getElementById('tracksContainer');
+            container.innerHTML = '';
+
+            files.forEach((file, index) => {
+                const trackDiv = document.createElement('div');
+                trackDiv.className = 'track-container';
+                trackDiv.innerHTML = `
+                    <div class="track-header">
+                        <div class="track-title">Track ${file.track_number}</div>
+                        <div class="track-controls">
+                            <a href="${file.download_url}" class="btn btn-secondary" download>
+                                📥 Download
+                            </a>
+                        </div>
+                    </div>
+                    <audio controls class="audio-player">
+                        <source src="${file.download_url}" type="audio/wav">
+                        Your browser does not support the audio element.
+                    </audio>
+                `;
+                container.appendChild(trackDiv);
+            });
+
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.main-card').appendChild(errorDiv);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.querySelector('.main-card').appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
+        }
     </script>
 </body>
 </html> 

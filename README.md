@@ -1,160 +1,212 @@
-# 🎵 AI Music Generator
+# Music Generator - AI Electronic Music Creation
 
-A web application that generates electronic music using the Tencent SongGeneration AI model from Hugging Face.
+A local web application that generates electronic music using AI models. Create up to 3-minute songs with optional reference audio inspiration!
 
 ## Features
 
-- **Text-to-Music Generation**: Generate music from text descriptions
-- **Modern Web Interface**: Beautiful, responsive UI with real-time feedback
-- **Audio Playback**: Play generated music directly in the browser
-- **Download Support**: Download generated music as WAV files
-- **Example Prompts**: Pre-built prompts for different music styles
-- **Model Status Monitoring**: Real-time status of the AI model
+- 🎵 **AI Music Generation**: Generate electronic music from text descriptions
+- ⏱️ **Up to 3 Minutes**: Create songs up to 180 seconds in length
+- 🎧 **Reference Audio Upload**: Upload songs to inspire the AI's generation
+- 🎛️ **Multiple Tracks**: Generate 1-10 different variations
+- 🎚️ **Professional Audio**: WAV format, 16-bit, 44.1kHz, stereo
+- 🌐 **Modern Web Interface**: Beautiful, responsive UI
+- 📱 **Mobile Friendly**: Works on all devices
 
-## Prerequisites
+## Audio Upload Feature
 
-- Python 3.8 or higher
-- pip (Python package manager)
-- At least 4GB of RAM (8GB+ recommended)
-- Internet connection for initial model download
+Upload reference audio files (WAV, MP3, FLAC, OGG, M4A) to inspire the AI's music generation. The system will:
+
+- Analyze the uploaded audio's characteristics
+- Extract tempo, loudness, and brightness information
+- Use these features to enhance the generated music
+- Provide detailed analysis feedback
 
 ## Installation
 
-1. **Clone or download this repository**
+### Prerequisites
+
+- Python 3.8 or higher
+- pip package manager
+
+### Setup
+
+1. **Clone the repository:**
    ```bash
-   cd "Music Generator"
+   git clone https://github.com/KesavMohan/MusicGenerator.git
+   cd MusicGenerator
    ```
 
-2. **Create a virtual environment (recommended)**
+2. **Create a virtual environment:**
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
 
-3. **Install dependencies**
+3. **Activate the virtual environment:**
+   
+   **On macOS/Linux:**
+   ```bash
+   source venv/bin/activate
+   ```
+   
+   **On Windows:**
+   ```bash
+   venv\Scripts\activate
+   ```
+
+4. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Download the model** (This will happen automatically on first run)
-   - The Tencent SongGeneration model (~2GB) will be downloaded from Hugging Face
-   - This may take several minutes depending on your internet speed
-
 ## Usage
 
-1. **Start the application**
-   ```bash
-   python app.py
-   ```
+### Starting the Application
 
-2. **Open your browser** and navigate to:
-   ```
-   http://localhost:5002
-   ```
+**Option 1: Using Python directly**
+```bash
+python app.py
+```
 
-3. **Generate music**:
-   - Enter a text description of the music you want to generate
-   - Set the duration (5-30 seconds)
-   - Click "Generate Music"
-   - Wait for the AI to process your request
-   - Play the generated music in your browser or download it
+**Option 2: Using the provided scripts**
 
-## Example Prompts
+**On macOS/Linux:**
+```bash
+./run.sh
+```
 
-Here are some example prompts to get you started:
+**On Windows:**
+```bash
+run.bat
+```
 
-- **Electronic Dance**: "A upbeat electronic dance track with synthesizers and heavy bass"
-- **Ambient**: "Ambient electronic music with soft pads and gentle melodies"
-- **Dubstep**: "Energetic dubstep with strong drops and electronic effects"
-- **Lo-fi**: "Chill lo-fi electronic beats with vinyl crackle"
-- **Techno**: "Dark techno with driving beats and industrial sounds"
+### Accessing the Application
+
+1. Open your web browser
+2. Navigate to: `http://localhost:5002`
+3. Start generating music!
+
+### How to Use
+
+1. **Describe your music**: Enter a text description of the music you want to generate
+2. **Set duration**: Choose between 5 seconds and 3 minutes (180 seconds)
+3. **Select track count**: Generate 1-10 different variations
+4. **Upload reference audio** (optional): Upload a song to inspire the generation
+5. **Generate**: Click the generate button and wait for your music!
+
+### Example Prompts
+
+- "Upbeat electronic dance music with heavy bass and synth melodies"
+- "Ambient electronic music with gentle pads and atmospheric sounds"
+- "Fast-paced techno with driving beats and industrial sounds"
+- "Chill downtempo electronic with smooth rhythms and warm tones"
+- "Dubstep with heavy bass drops and electronic effects"
+- "Synthwave with retro 80s style and melodic leads"
+
+## Audio Specifications
+
+All generated music is saved in professional quality:
+- **Format**: WAV
+- **Bit Depth**: 16-bit
+- **Sample Rate**: 44.1 kHz
+- **Channels**: Stereo
+- **Max Duration**: 3 minutes (180 seconds)
 
 ## Technical Details
 
-### Model Information
-- **Model**: `tencent/SongGeneration`
-- **Type**: Text-to-Audio generation
-- **Architecture**: Language model-based framework
-- **Output**: WAV audio files
+### Models Used
 
-### System Requirements
-- **CPU**: Multi-core processor recommended
-- **RAM**: 4GB minimum, 8GB+ recommended
-- **Storage**: 5GB free space for model and generated files
-- **GPU**: Optional but recommended for faster generation
+- **Primary**: Facebook's MusicGen model for high-quality generation
+- **Fallback**: Demo audio generation with synthesized sounds
+- **Reference Analysis**: Audio feature extraction for inspiration
 
-### Generated Files
-- Generated music files are saved in the `generated_music/` directory
-- Files are named with unique IDs to prevent conflicts
-- Audio format: WAV, 16kHz sample rate
+### File Structure
+
+```
+MusicGenerator/
+├── app.py                 # Main Flask application
+├── requirements.txt       # Python dependencies
+├── templates/
+│   └── index.html        # Web interface
+├── generated_music/       # Generated audio files
+├── uploads/              # Temporary upload directory
+├── run.sh               # macOS/Linux startup script
+├── run.bat              # Windows startup script
+└── README.md            # This file
+```
+
+### API Endpoints
+
+- `GET /` - Main web interface
+- `POST /generate` - Generate music from text prompt
+- `POST /upload` - Upload reference audio for analysis
+- `GET /download/<filename>` - Download generated audio files
+- `GET /status` - Check system status and model availability
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Model loading fails**
-   - Check your internet connection
-   - Ensure you have enough disk space
-   - Try restarting the application
+1. **Port 5002 already in use:**
+   ```bash
+   # Find and kill the process using port 5002
+   lsof -ti:5002 | xargs kill -9
+   ```
 
-2. **Generation takes too long**
-   - Reduce the duration
-   - Check if you have enough RAM
-   - Consider using a GPU if available
+2. **Model loading errors:**
+   ```bash
+   # Reinstall dependencies
+   pip install -r requirements.txt --force-reinstall
+   ```
 
-3. **Out of memory errors**
-   - Reduce the duration
-   - Close other applications
-   - Consider using a machine with more RAM
+3. **Audio generation fails:**
+   - Check that you have sufficient disk space
+   - Ensure the `generated_music` directory exists
+   - Try generating shorter durations first
 
-4. **Audio playback issues**
-   - Try downloading the file and playing it with a media player
-   - Check your browser's audio settings
+### System Requirements
 
-### Error Messages
+- **RAM**: Minimum 4GB, recommended 8GB+
+- **Storage**: At least 2GB free space
+- **Network**: Internet connection for initial model download
 
-- **"Model not loaded"**: The AI model failed to load. Check the console for detailed error messages.
-- **"Generation failed"**: The music generation process encountered an error. Try a different prompt or reduce the duration.
-- **"Network error"**: Connection issue between browser and server. Refresh the page and try again.
+## Development
 
-## Performance Tips
+### Adding New Features
 
-1. **First run**: The initial model download may take time. Be patient!
-2. **Generation time**: Expect 1-3 minutes for generation depending on your hardware
-3. **Memory usage**: Close unnecessary applications to free up RAM
-4. **GPU acceleration**: If you have a compatible GPU, it will be used automatically
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## Limitations
+### Local Development
 
-- **Duration**: Limited to 5-30 seconds per generation
-- **Style**: Optimized for electronic music genres
-- **Quality**: Output quality depends on the input prompt specificity
-- **Hardware**: Requires significant computational resources
+```bash
+# Install development dependencies
+pip install -r requirements.txt
 
-## Privacy & Security
+# Run in debug mode
+python app.py
 
-- All processing happens locally on your machine
-- No data is sent to external servers (except for initial model download)
-- Generated music files are stored locally
-- No user data is collected or stored
+# Access at http://localhost:5002
+```
 
 ## License
 
-This project is for educational and personal use. Please check the Tencent SongGeneration model license for commercial usage restrictions.
-
-## Support
-
-If you encounter issues:
-
-1. Check the console output for error messages
-2. Ensure all dependencies are installed correctly
-3. Verify your system meets the minimum requirements
-4. Try reducing the generation duration
+This project is open source and available under the MIT License.
 
 ## Contributing
 
-This is a standalone application. Feel free to modify and enhance it for your needs!
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+## Support
+
+If you encounter any issues:
+
+1. Check the troubleshooting section above
+2. Search existing issues on GitHub
+3. Create a new issue with detailed information
 
 ---
 
-**Enjoy creating music with AI! 🎵** 
+**Happy Music Generation! 🎵** 

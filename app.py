@@ -7,6 +7,8 @@ import numpy as np
 from datetime import datetime
 import logging
 import time
+import tempfile
+from werkzeug.utils import secure_filename
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -14,19 +16,30 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
-# Create directories for generated music
+# Create directories for generated music and uploads
 GENERATED_MUSIC_DIR = 'generated_music'
+UPLOADS_DIR = 'uploads'
 if not os.path.exists(GENERATED_MUSIC_DIR):
     os.makedirs(GENERATED_MUSIC_DIR)
+if not os.path.exists(UPLOADS_DIR):
+    os.makedirs(UPLOADS_DIR)
 
 # Audio specifications
 TARGET_SAMPLE_RATE = 44100  # 44.1 kHz
 TARGET_CHANNELS = 2  # Stereo
 TARGET_BIT_DEPTH = 16  # 16-bit
 
+# Allowed file extensions for uploads
+ALLOWED_EXTENSIONS = {'wav', 'mp3', 'flac', 'ogg', 'm4a'}
+
 # Global variable to store the model
 music_generator = None
+
+def allowed_file(filename):
+    """Check if uploaded file has allowed extension"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def load_model():
     """Load a music generation model"""
@@ -66,26 +79,95 @@ def load_model():
         logger.error(f"Error loading model: {str(e)}")
         return False
 
-def generate_demo_audio(prompt, duration=10):
+def process_reference_audio(file_path):
+    """Process uploaded reference audio for analysis"""
+    try:
+        # Load the audio file
+        audio_tensor, sample_rate = torchaudio.load(file_path)
+        
+        # Convert to mono if stereo (for analysis)
+        if audio_tensor.shape[0] > 1:
+            audio_mono = torch.mean(audio_tensor, dim=0, keepdim=True)
+        else:
+            audio_mono = audio_tensor
+        
+        # Resample to target sample rate if needed
+        if sample_rate != TARGET_SAMPLE_RATE:
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=sample_rate,
+                new_freq=TARGET_SAMPLE_RATE
+            )
+            audio_mono = resampler(audio_mono)
+        
+        # Analyze audio characteristics
+        duration = audio_mono.shape[1] / TARGET_SAMPLE_RATE
+        
+        # Calculate basic audio features
+        # RMS (loudness)
+        rms = torch.sqrt(torch.mean(audio_mono**2))
+        
+        # Spectral centroid (brightness)
+        if hasattr(torchaudio.transforms, 'Spectrogram'):
+            spectrogram = torchaudio.transforms.Spectrogram()(audio_mono)
+            spectral_centroid = torch.mean(spectrogram, dim=1)
+        else:
+            spectral_centroid = torch.tensor([0.5])  # Default value
+        
+        # Tempo estimation (simplified)
+        # This is a very basic tempo detection - in a real app you'd use librosa
+        tempo_estimate = 120.0  # Default BPM
+        
+        analysis = {
+            'duration': duration,
+            'rms': rms.item(),
+            'spectral_centroid': spectral_centroid.mean().item(),
+            'tempo_estimate': tempo_estimate,
+            'sample_rate': TARGET_SAMPLE_RATE
+        }
+        
+        return analysis, audio_mono
+        
+    except Exception as e:
+        logger.error(f"Error processing reference audio: {str(e)}")
+        return None, None
+
+def generate_demo_audio(prompt, duration=10, reference_analysis=None):
     """Generate demo audio with synthesized sounds"""
     try:
         # Generate a simple synthesized audio based on prompt keywords
         t = np.linspace(0, duration, int(TARGET_SAMPLE_RATE * duration))
         
+        # Use reference analysis if available
+        if reference_analysis:
+            # Adjust generation based on reference characteristics
+            reference_rms = reference_analysis.get('rms', 0.3)
+            reference_centroid = reference_analysis.get('spectral_centroid', 0.5)
+            reference_tempo = reference_analysis.get('tempo_estimate', 120)
+            
+            # Adjust frequency based on spectral centroid
+            base_freq = 220 + (reference_centroid * 440)  # 220-660 Hz range
+            # Adjust amplitude based on RMS
+            amplitude = min(0.8, reference_rms * 2)
+            # Adjust rhythm based on tempo
+            beat_freq = reference_tempo / 60  # Convert BPM to Hz
+        else:
+            base_freq = 330
+            amplitude = 0.25
+            beat_freq = 2
+        
         # Create different tones based on prompt content
         if any(word in prompt.lower() for word in ['upbeat', 'dance', 'energetic', 'fast']):
             # Higher frequency for upbeat music
-            freq = 440  # A4
-            audio = np.sin(2 * np.pi * freq * t) * 0.3
+            freq = base_freq * 1.5
+            audio = np.sin(2 * np.pi * freq * t) * amplitude
             # Add some rhythm
-            beat_freq = 2  # 2 beats per second
             envelope = (np.sin(2 * np.pi * beat_freq * t) + 1) * 0.5
             audio = audio * envelope
             
         elif any(word in prompt.lower() for word in ['ambient', 'calm', 'gentle', 'soft']):
             # Lower frequency for ambient music
-            freq = 220  # A3
-            audio = np.sin(2 * np.pi * freq * t) * 0.2
+            freq = base_freq * 0.8
+            audio = np.sin(2 * np.pi * freq * t) * amplitude * 0.7
             # Add some gentle modulation
             mod_freq = 0.5
             modulation = np.sin(2 * np.pi * mod_freq * t) * 0.1 + 1
@@ -93,18 +175,18 @@ def generate_demo_audio(prompt, duration=10):
             
         elif any(word in prompt.lower() for word in ['bass', 'heavy', 'dubstep']):
             # Very low frequency for bass-heavy music
-            freq = 110  # A2
-            audio = np.sin(2 * np.pi * freq * t) * 0.4
+            freq = base_freq * 0.5
+            audio = np.sin(2 * np.pi * freq * t) * amplitude * 1.2
             # Add some distortion effect
             audio = np.tanh(audio * 3) * 0.3
             
         else:
             # Default electronic sound
-            freq = 330  # E4
-            audio = np.sin(2 * np.pi * freq * t) * 0.25
+            freq = base_freq
+            audio = np.sin(2 * np.pi * freq * t) * amplitude
             # Add some harmonics
-            audio += np.sin(2 * np.pi * freq * 2 * t) * 0.1
-            audio += np.sin(2 * np.pi * freq * 0.5 * t) * 0.15
+            audio += np.sin(2 * np.pi * freq * 2 * t) * amplitude * 0.4
+            audio += np.sin(2 * np.pi * freq * 0.5 * t) * amplitude * 0.6
         
         # Add some fade in/out to make it sound more natural
         fade_samples = int(TARGET_SAMPLE_RATE * 0.1)  # 0.1 second fade
@@ -165,6 +247,46 @@ def index():
     """Main page"""
     return render_template('index.html')
 
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handle file upload for reference audio"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if file and allowed_file(file.filename):
+            # Secure the filename
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(UPLOADS_DIR, f"{uuid.uuid4().hex}_{filename}")
+            
+            # Save the file
+            file.save(file_path)
+            
+            # Process the reference audio
+            analysis, audio_tensor = process_reference_audio(file_path)
+            
+            if analysis is None:
+                return jsonify({'error': 'Failed to process uploaded audio'}), 500
+            
+            # Clean up the uploaded file
+            os.remove(file_path)
+            
+            return jsonify({
+                'success': True,
+                'analysis': analysis,
+                'message': f'Reference audio analyzed successfully! Duration: {analysis["duration"]:.1f}s'
+            })
+        else:
+            return jsonify({'error': 'Invalid file type. Allowed: wav, mp3, flac, ogg, m4a'}), 400
+            
+    except Exception as e:
+        logger.error(f"Error in upload_file: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/generate', methods=['POST'])
 def generate_music():
     """Generate music based on text prompt"""
@@ -173,11 +295,18 @@ def generate_music():
         prompt = data.get('prompt', '')
         duration = data.get('duration', 10)  # Default 10 seconds
         track_count = data.get('track_count', 1)  # Default 1 track
+        reference_analysis = data.get('reference_analysis', None)  # Reference audio analysis
         
         if not prompt:
             return jsonify({'error': 'Please provide a text prompt'}), 400
         
+        # Validate duration (up to 3 minutes = 180 seconds)
+        if duration < 5 or duration > 180:
+            return jsonify({'error': 'Duration must be between 5 and 180 seconds (3 minutes)'}), 400
+        
         logger.info(f"Generating {track_count} track(s) for prompt: {prompt}, duration: {duration}s")
+        if reference_analysis:
+            logger.info(f"Using reference audio analysis: {reference_analysis}")
         
         generated_files = []
         
@@ -195,9 +324,16 @@ def generate_music():
                         processor = music_generator["processor"]
                         model = music_generator["model"]
                         
+                        # Enhance prompt with reference analysis if available
+                        enhanced_prompt = prompt
+                        if reference_analysis:
+                            ref_duration = reference_analysis.get('duration', 0)
+                            ref_tempo = reference_analysis.get('tempo_estimate', 120)
+                            enhanced_prompt = f"{prompt} (inspired by reference: {ref_duration:.1f}s duration, {ref_tempo:.0f} BPM)"
+                        
                         # Process the prompt
                         inputs = processor(
-                            text=[prompt],
+                            text=[enhanced_prompt],
                             padding=True,
                             return_tensors="pt",
                         )
@@ -222,8 +358,8 @@ def generate_music():
                             return jsonify({'error': f'Failed to process audio for track {track_num + 1}'}), 500
                         
                     elif music_generator["type"] == "demo":
-                        # Use demo generation
-                        audio_tensor, original_sample_rate = generate_demo_audio(prompt, duration)
+                        # Use demo generation with reference analysis
+                        audio_tensor, original_sample_rate = generate_demo_audio(prompt, duration, reference_analysis)
                         
                         if audio_tensor is None:
                             return jsonify({'error': 'Failed to generate demo audio'}), 500
@@ -270,6 +406,8 @@ def generate_music():
         
         # Return success with all generated files
         message = f'Generated {track_count} track(s) successfully!' + (' (Demo Mode)' if music_generator["type"] == "demo" else '')
+        if reference_analysis:
+            message += ' (with reference audio inspiration)'
         
         return jsonify({
             'success': True,
@@ -308,7 +446,8 @@ def status():
             'sample_rate': f'{TARGET_SAMPLE_RATE} Hz',
             'channels': f'{TARGET_CHANNELS} (Stereo)',
             'bit_depth': f'{TARGET_BIT_DEPTH}-bit'
-        }
+        },
+        'max_duration': 180  # 3 minutes in seconds
     })
 
 if __name__ == '__main__':
