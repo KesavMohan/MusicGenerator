@@ -589,6 +589,11 @@
         }
 
         function startProgressTracking(generationId, trackCount, duration) {
+            if (!generationId) {
+                console.error('No generation ID provided');
+                return;
+            }
+            
             currentGenerationId = generationId;
             
             // Update progress details
@@ -602,6 +607,10 @@
             progressInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`/progress/${generationId}`);
+                    if (!response.ok) {
+                        console.error('Progress request failed:', response.status);
+                        return;
+                    }
                     const progressData = await response.json();
                     
                     updateProgressDisplay(progressData);
@@ -724,14 +733,20 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Start progress tracking
-                    startProgressTracking(data.generation_id, trackCount, duration);
-                    
-                    // Wait for progress to complete, then show results
-                    setTimeout(() => {
+                    // Start progress tracking if generation ID is available
+                    if (data.generation_id) {
+                        startProgressTracking(data.generation_id, trackCount, duration);
+                        
+                        // Wait for progress to complete, then show results
+                        setTimeout(() => {
+                            showSuccess(data.message);
+                            displayTracks(data.files);
+                        }, 2000);
+                    } else {
+                        // Fallback if no generation ID (for backward compatibility)
                         showSuccess(data.message);
                         displayTracks(data.files);
-                    }, 2000);
+                    }
                 } else {
                     showError(data.error);
                 }

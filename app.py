@@ -497,7 +497,7 @@ def generate_music():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/progress/<generation_id>')
-def get_progress(generation_id):
+def get_progress_route(generation_id):
     """Get progress for a specific generation"""
     progress_data = get_progress(generation_id)
     return jsonify(progress_data)
